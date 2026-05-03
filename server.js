@@ -5,7 +5,7 @@ const { PokerGame } = require('./src/engine');
 const { decideBotAction } = require('./src/bots');
 
 const PORT = Number(process.env.PORT || 3000);
-const HOST = process.env.HOST || '127.0.0.1';
+const HOST = process.env.HOST || '0.0.0.0';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const game = new PokerGame();
 const clients = new Set();
