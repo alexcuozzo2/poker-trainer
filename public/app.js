@@ -148,6 +148,24 @@ function positionForSeat(seat, radiusX, radiusY) {
   };
 }
 
+function tableGeometry() {
+  const crowded = state.settings.seats >= 8;
+  if (role !== 'hero') {
+    return {
+      seatRadiusX: 43.5,
+      seatRadiusY: 38.5,
+      betRadiusX: 28,
+      betRadiusY: 23.5
+    };
+  }
+  return {
+    seatRadiusX: crowded ? 44.1 : 43.5,
+    seatRadiusY: crowded ? 39.2 : 38.5,
+    betRadiusX: crowded ? 23.4 : 24.6,
+    betRadiusY: crowded ? 18.8 : 19.8
+  };
+}
+
 function playerBySeat(seat) {
   return state.players.find((player) => player.seat === Number(seat));
 }
@@ -199,7 +217,8 @@ function queueChipFlights(flights) {
   if (!flights.length) return;
   const ids = [];
   for (const flight of flights) {
-    const from = positionForSeat(flight.seat, 28, 23.5);
+    const geometry = tableGeometry();
+    const from = positionForSeat(flight.seat, geometry.betRadiusX, geometry.betRadiusY);
     const id = ++chipFlightId;
     ids.push(id);
     chipFlights.push({
@@ -228,7 +247,8 @@ function renderChipFlight(flight) {
 }
 
 function renderSeat(player) {
-  const position = positionForSeat(player.seat, 43.5, 38.5);
+  const geometry = tableGeometry();
+  const position = positionForSeat(player.seat, geometry.seatRadiusX, geometry.seatRadiusY);
   const classes = [
     'seat',
     player.seat === state.actionOn ? 'is-action' : '',
@@ -261,7 +281,8 @@ function renderSeat(player) {
 
 function renderBetPile(player) {
   if (!player.streetBet) return '';
-  const position = positionForSeat(player.seat, 28, 23.5);
+  const geometry = tableGeometry();
+  const position = positionForSeat(player.seat, geometry.betRadiusX, geometry.betRadiusY);
   const chipCount = Math.min(3, Math.max(1, Math.ceil(Number(player.streetBet) / Math.max(1, state.settings.bigBlind * 2))));
   return `
     <div class="bet-pile" style="left:${position.left}%; top:${position.top}%;">

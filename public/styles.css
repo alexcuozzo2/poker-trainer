@@ -182,8 +182,16 @@ label {
 
 .view-grid.hero-only {
   grid-template-columns: 1fr;
-  max-width: 1280px;
+  max-width: 1360px;
   margin: 0 auto;
+}
+
+.view-grid.hero-only .table {
+  min-height: 760px;
+}
+
+.view-grid.hero-only .seat {
+  width: 168px;
 }
 
 .table-zone {
@@ -790,6 +798,10 @@ label {
   .table {
     min-height: 640px;
   }
+
+  .view-grid.hero-only .table {
+    min-height: 710px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -804,11 +816,13 @@ label {
     padding: 10px;
   }
 
-  .table {
-    min-height: 600px;
+  .table,
+  .view-grid.hero-only .table {
+    min-height: 620px;
   }
 
-  .seat {
+  .seat,
+  .view-grid.hero-only .seat {
     width: 128px;
   }
 
