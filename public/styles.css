@@ -21,9 +21,15 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
   background: radial-gradient(circle at 50% 0%, #242720 0, #171917 42%, #101110 100%);
   color: var(--text);
 }
@@ -92,6 +98,10 @@ label {
 
 .app-shell {
   min-height: 100vh;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
 }
 
 .loading,
@@ -121,8 +131,7 @@ label {
   padding: 0 18px;
   border-bottom: 1px solid var(--line);
   background: rgba(21, 23, 22, 0.88);
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 20;
   backdrop-filter: blur(10px);
 }
@@ -174,20 +183,23 @@ label {
 }
 
 .view-grid {
+  min-height: 0;
+  height: 100%;
   display: grid;
-  grid-template-columns: minmax(680px, 1fr) 390px;
+  grid-template-columns: minmax(0, 1fr) 390px;
   gap: 16px;
   padding: 16px;
+  overflow: hidden;
 }
 
 .view-grid.hero-only {
-  grid-template-columns: 1fr;
-  max-width: 1360px;
-  margin: 0 auto;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  max-width: none;
+  margin: 0;
 }
 
 .view-grid.hero-only .table {
-  min-height: 760px;
+  min-height: 0;
 }
 
 .view-grid.hero-only .seat {
@@ -196,18 +208,18 @@ label {
 
 .table-zone {
   min-width: 0;
+  min-height: 0;
 }
 
 .table-shell {
-  min-height: calc(100vh - 90px);
-  display: grid;
-  grid-template-rows: 1fr auto;
-  gap: 14px;
+  height: 100%;
+  min-height: 0;
 }
 
 .table {
   position: relative;
-  min-height: 680px;
+  height: 100%;
+  min-height: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   overflow: hidden;
@@ -539,19 +551,14 @@ label {
   }
 }
 
-.hero-action-bar,
-.admin-panel {
+.side-panel {
+  align-self: stretch;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(34, 37, 33, 0.92);
-}
-
-.hero-action-bar {
-  min-height: 116px;
-  display: grid;
-  align-content: center;
-  gap: 10px;
-  padding: 14px;
 }
 
 .action-title {
@@ -585,10 +592,44 @@ label {
   width: 138px;
 }
 
-.admin-panel {
-  align-self: start;
-  max-height: calc(100vh - 90px);
-  overflow: auto;
+.hero-panel .action-row {
+  align-items: stretch;
+}
+
+.hero-panel .action-row > button {
+  flex: 1 1 96px;
+}
+
+.hero-panel .wager-box,
+.hero-panel .quick-bets {
+  width: 100%;
+}
+
+.hero-panel .quick-bets button {
+  flex: 1 1 58px;
+}
+
+.hero-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.summary-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.summary-line strong {
+  color: var(--text);
+  font-size: 14px;
 }
 
 .panel-section {
@@ -836,15 +877,42 @@ label {
 }
 
 @media (max-width: 1080px) {
-  .view-grid {
-    grid-template-columns: 1fr;
+  body {
+    height: auto;
+    overflow: auto;
   }
 
-  .admin-panel {
+  .app-shell {
+    min-height: 100vh;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+  }
+
+  .view-grid,
+  .view-grid.hero-only {
+    height: auto;
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .side-panel {
+    height: auto;
     max-height: none;
+    overflow: visible;
+  }
+
+  .table-shell {
+    height: auto;
   }
 
   .table {
+    height: auto;
     min-height: 640px;
   }
 

@@ -315,22 +315,38 @@ function renderTable() {
         ${players.map(renderBetPile).join('')}
         ${chipFlights.map(renderChipFlight).join('')}
       </div>
-      ${renderHeroBar()}
     </section>
   `;
 }
 
-function renderHeroBar() {
+function renderHeroPanel() {
   if (role !== 'hero') return '';
   const hero = state.players.find((player) => player.isHero);
-  const legal = state.actionOn === hero?.seat ? state.legal : null;
+  const legal = hero && state.actionOn === hero.seat ? state.legal : null;
+  const actionTitle = state.handComplete ? 'Hand complete' : 'Waiting for action';
   return `
-    <section class="hero-action-bar">
-      ${legal?.canAct ? renderActionControls(legal, hero, false) : `
-        <div class="action-title">${state.handComplete ? 'Hand complete' : 'Waiting for action'}</div>
-        <div class="button-row"><span class="pill">${streetLabels[state.street] || state.street}</span></div>
-      `}
-    </section>
+    <aside class="hero-panel side-panel">
+      <section class="panel-section">
+        <div class="panel-title">
+          <h2>Hero Action</h2>
+          <small>${streetLabels[state.street] || state.street}</small>
+        </div>
+        ${legal?.canAct ? renderActionControls(legal, hero, false) : `
+          <div class="action-title">${actionTitle}</div>
+          <div class="button-row"><span class="pill">${streetLabels[state.street] || state.street}</span></div>
+        `}
+      </section>
+
+      <section class="panel-section">
+        <div class="panel-title"><h2>Table</h2></div>
+        <div class="hero-summary">
+          <div class="summary-line"><span>Stack</span><strong>${formatChips(hero?.stack || 0)}</strong></div>
+          <div class="summary-line"><span>Pot</span><strong>${formatChips(state.pot)}</strong></div>
+          ${state.streetPot ? `<div class="summary-line"><span>Street bets</span><strong>${formatChips(state.streetPot)}</strong></div>` : ``}
+          ${legal?.toCall ? `<div class="summary-line"><span>To call</span><strong>${formatChips(legal.toCall)}</strong></div>` : ``}
+        </div>
+      </section>
+    </aside>
   `;
 }
 
@@ -479,7 +495,7 @@ function renderCardOverrideDialog() {
 function renderAdminPanel() {
   const actionPlayer = state.actionOn ? playerBySeat(state.actionOn) : null;
   return `
-    <aside class="admin-panel">
+    <aside class="admin-panel side-panel">
       <section class="panel-section">
         <div class="panel-title">
           <h2>Table Control</h2>
@@ -675,17 +691,19 @@ function renderTopbar() {
 }
 
 function render() {
-  const adminScrollTop = document.querySelector('.admin-panel')?.scrollTop || 0;
+  const currentPanel = document.querySelector('.side-panel');
+  const panelClass = currentPanel?.classList.contains('admin-panel') ? 'admin-panel' : currentPanel?.classList.contains('hero-panel') ? 'hero-panel' : '';
+  const panelScrollTop = currentPanel?.scrollTop || 0;
   app.innerHTML = `
     ${renderTopbar()}
     <main class="view-grid ${role === 'hero' ? 'hero-only' : ''}">
       <div class="table-zone">${renderTable()}</div>
-      ${role === 'admin' ? renderAdminPanel() : ''}
+      ${role === 'admin' ? renderAdminPanel() : renderHeroPanel()}
     </main>
     ${renderCardOverrideDialog()}
   `;
-  const adminPanel = document.querySelector('.admin-panel');
-  if (adminPanel) adminPanel.scrollTop = adminScrollTop;
+  const panel = panelClass ? document.querySelector(`.${panelClass}`) : null;
+  if (panel) panel.scrollTop = panelScrollTop;
 }
 
 document.addEventListener('click', async (event) => {
@@ -770,10 +788,17 @@ document.addEventListener('click', async (event) => {
 document.addEventListener('change', async (event) => {
   const botInput = event.target.closest('input[data-command="set-bot"]');
   if (botInput) {
+    const panel = botInput.closest('.side-panel');
+    const panelScrollTop = panel?.scrollTop || 0;
     try {
+      botInput.blur();
       await api('setBot', {
         seat: Number(botInput.dataset.seat),
         botType: botInput.value
+      });
+      requestAnimationFrame(() => {
+        const nextPanel = document.querySelector('.admin-panel');
+        if (nextPanel) nextPanel.scrollTop = panelScrollTop;
       });
     } catch (error) {
       showToast(error.message);
