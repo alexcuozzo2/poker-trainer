@@ -193,17 +193,13 @@ label {
 }
 
 .view-grid.hero-only {
-  grid-template-columns: minmax(0, 1fr) 330px;
+  grid-template-columns: minmax(0, 1fr) 390px;
   max-width: none;
   margin: 0;
 }
 
 .view-grid.hero-only .table {
   min-height: 0;
-}
-
-.view-grid.hero-only .seat {
-  width: 168px;
 }
 
 .table-zone {
@@ -576,16 +572,40 @@ label {
 }
 
 .quick-bets {
-  display: flex;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 6px;
-  flex-wrap: wrap;
-  align-items: end;
+  align-items: stretch;
+}
+
+.quick-bet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .quick-bets button {
   min-height: 32px;
   padding: 0 9px;
   font-size: 12px;
+}
+
+.all-in-shortcut {
+  min-height: 42px;
+  width: 100%;
+  border-color: rgba(217, 95, 80, 0.9);
+  background: #9d342b;
+  color: #fff2ef;
+  font-weight: 800;
+}
+
+.all-in-shortcut:hover {
+  background: #b43e34;
+}
+
+.action-submit {
+  min-width: 96px;
 }
 
 .wager-box {
@@ -601,12 +621,10 @@ label {
 }
 
 .hero-panel .wager-box,
-.hero-panel .quick-bets {
+.hero-panel .quick-bets,
+.hero-panel .action-submit,
+.admin-panel .action-submit {
   width: 100%;
-}
-
-.hero-panel .quick-bets button {
-  flex: 1 1 58px;
 }
 
 .hero-summary {
@@ -705,33 +723,27 @@ label {
   font-size: 12px;
 }
 
-.bot-toggle label {
+.bot-choice {
   min-height: 30px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #181a17;
   color: var(--text);
-  cursor: pointer;
+  padding: 0 6px;
 }
 
-.bot-toggle input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.bot-toggle label:has(input:checked) {
+.bot-choice[aria-checked="true"] {
   border-color: var(--accent);
   background: rgba(212, 167, 44, 0.22);
   color: #f8e7ae;
   font-weight: 800;
 }
 
-.bot-toggle:disabled label {
+.bot-choice:disabled {
   cursor: not-allowed;
   opacity: 0.48;
 }
@@ -915,10 +927,6 @@ label {
     height: auto;
     min-height: 640px;
   }
-
-  .view-grid.hero-only .table {
-    min-height: 710px;
-  }
 }
 
 @media (max-width: 720px) {
@@ -933,13 +941,11 @@ label {
     padding: 10px;
   }
 
-  .table,
-  .view-grid.hero-only .table {
+  .table {
     min-height: 620px;
   }
 
-  .seat,
-  .view-grid.hero-only .seat {
+  .seat {
     width: 128px;
   }
 

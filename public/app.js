@@ -136,7 +136,7 @@ function cardHtml(card, meta = {}) {
 
 function displayIndexForSeat(seat) {
   const seats = state.settings.seats;
-  const anchor = role === 'hero' ? state.settings.heroSeat : 1;
+  const anchor = 1;
   return (seat - anchor + seats) % seats;
 }
 
@@ -149,20 +149,11 @@ function positionForSeat(seat, radiusX, radiusY) {
 }
 
 function tableGeometry() {
-  const crowded = state.settings.seats >= 8;
-  if (role !== 'hero') {
-    return {
-      seatRadiusX: 43.5,
-      seatRadiusY: 38.5,
-      betRadiusX: 28,
-      betRadiusY: 23.5
-    };
-  }
   return {
-    seatRadiusX: crowded ? 44.1 : 43.5,
-    seatRadiusY: crowded ? 39.2 : 38.5,
-    betRadiusX: crowded ? 23.4 : 24.6,
-    betRadiusY: crowded ? 18.8 : 19.8
+    seatRadiusX: 43.5,
+    seatRadiusY: 38.5,
+    betRadiusX: 28,
+    betRadiusY: 23.5
   };
 }
 
@@ -342,7 +333,7 @@ function renderHeroPanel() {
         <div class="hero-summary">
           <div class="summary-line"><span>Stack</span><strong>${formatChips(hero?.stack || 0)}</strong></div>
           <div class="summary-line"><span>Pot</span><strong>${formatChips(state.pot)}</strong></div>
-          ${state.streetPot ? `<div class="summary-line"><span>Street bets</span><strong>${formatChips(state.streetPot)}</strong></div>` : ``}
+          ${state.streetPot ? `<div class="summary-line"><span>Street total</span><strong>${formatChips(state.streetPot)}</strong></div>` : ``}
           ${legal?.toCall ? `<div class="summary-line"><span>To call</span><strong>${formatChips(legal.toCall)}</strong></div>` : ``}
         </div>
       </section>
@@ -395,13 +386,15 @@ function renderActionControls(legal, player, allowForce) {
           <input id="wagerAmount" type="number" min="${wager.min}" max="${wager.max}" step="1" value="${wager.min}">
         </label>
         <div class="quick-bets">
-          ${quickSizes.map((size) => `
-            <button data-command="set-wager" data-value="${size.value}">${escapeHtml(size.label)}</button>
-          `).join('')}
+          <div class="quick-bet-grid">
+            <button data-command="set-wager" data-value="${wager.min}">Min</button>
+            ${quickSizes.map((size) => `
+              <button data-command="set-wager" data-value="${size.value}">${escapeHtml(size.label)}</button>
+            `).join('')}
+          </div>
+          <button class="danger all-in-shortcut" data-command="set-wager" data-value="${wager.max}">All in</button>
         </div>
-        <button data-command="set-wager" data-value="${wager.min}">Min</button>
-        <button data-command="set-wager" data-value="${wager.max}">All in</button>
-        <button class="primary" data-command="action" data-seat="${player.seat}" data-action="${wager.type}" data-needs-amount="true">
+        <button class="primary action-submit" data-command="action" data-seat="${player.seat}" data-action="${wager.type}" data-needs-amount="true">
           ${wager.type === 'bet' ? 'Bet' : 'Raise'}
         </button>
       ` : ''}
@@ -579,14 +572,25 @@ function renderSeatEditor(player) {
       </label>
       <button data-command="set-stack" data-seat="${player.seat}" ${!player.active ? 'disabled' : ''}>Set</button>
       <div></div>
-      <fieldset class="bot-toggle" ${player.isHero || !player.active ? 'disabled' : ''}>
+      <fieldset class="bot-toggle" role="radiogroup" aria-label="Bot automation" ${player.isHero || !player.active ? 'disabled' : ''}>
         <legend>Bot</legend>
-        ${['manual', 'fish', 'pro'].map((type) => `
-          <label>
-            <input type="radio" name="bot-${player.seat}" data-command="set-bot" data-seat="${player.seat}" value="${type}" ${(player.botType || 'manual') === type ? 'checked' : ''}>
-            <span>${type[0].toUpperCase()}${type.slice(1)}</span>
-          </label>
-        `).join('')}
+        ${['manual', 'fish', 'pro'].map((type) => {
+          const selected = (player.botType || 'manual') === type;
+          const disabled = player.isHero || !player.active;
+          return `
+            <button
+              type="button"
+              class="bot-choice"
+              role="radio"
+              aria-checked="${selected ? 'true' : 'false'}"
+              data-command="set-bot"
+              data-seat="${player.seat}"
+              data-bot-type="${type}"
+              ${disabled ? 'disabled' : ''}>
+              ${type[0].toUpperCase()}${type.slice(1)}
+            </button>
+          `;
+        }).join('')}
       </fieldset>
       <div></div>
       <div class="card-selects">
@@ -683,7 +687,7 @@ function renderTopbar() {
         <span class="pill">${streetLabels[state.street] || state.street}</span>
         <span class="pill">${formatChips(state.settings.smallBlind)}/${formatChips(state.settings.bigBlind)}</span>
         <span class="pill">Pot ${formatChips(state.pot)}</span>
-        ${state.streetPot ? `<span class="pill">Street bets ${formatChips(state.streetPot)}</span>` : ''}
+        ${state.streetPot ? `<span class="pill">Street total ${formatChips(state.streetPot)}</span>` : ''}
         ${actionPlayer ? `<span class="pill">Action: ${escapeHtml(actionPlayer.name)}</span>` : ''}
       </div>
     </header>
@@ -704,6 +708,13 @@ function render() {
   `;
   const panel = panelClass ? document.querySelector(`.${panelClass}`) : null;
   if (panel) panel.scrollTop = panelScrollTop;
+  anchorDesktopViewport();
+}
+
+function anchorDesktopViewport() {
+  if (window.matchMedia('(min-width: 1081px)').matches && (window.scrollX || window.scrollY)) {
+    window.scrollTo(0, 0);
+  }
 }
 
 document.addEventListener('click', async (event) => {
@@ -714,6 +725,20 @@ document.addEventListener('click', async (event) => {
     if (command === 'set-wager') {
       const input = document.getElementById('wagerAmount');
       if (input) input.value = button.dataset.value;
+      return;
+    }
+    if (command === 'set-bot') {
+      const panel = button.closest('.side-panel');
+      const panelScrollTop = panel?.scrollTop || 0;
+      await api('setBot', {
+        seat: Number(button.dataset.seat),
+        botType: button.dataset.botType
+      });
+      requestAnimationFrame(() => {
+        const nextPanel = document.querySelector('.admin-panel');
+        if (nextPanel) nextPanel.scrollTop = panelScrollTop;
+        anchorDesktopViewport();
+      });
       return;
     }
     if (command === 'open-card-override') {
@@ -786,27 +811,6 @@ document.addEventListener('click', async (event) => {
 });
 
 document.addEventListener('change', async (event) => {
-  const botInput = event.target.closest('input[data-command="set-bot"]');
-  if (botInput) {
-    const panel = botInput.closest('.side-panel');
-    const panelScrollTop = panel?.scrollTop || 0;
-    try {
-      botInput.blur();
-      await api('setBot', {
-        seat: Number(botInput.dataset.seat),
-        botType: botInput.value
-      });
-      requestAnimationFrame(() => {
-        const nextPanel = document.querySelector('.admin-panel');
-        if (nextPanel) nextPanel.scrollTop = panelScrollTop;
-      });
-    } catch (error) {
-      showToast(error.message);
-      render();
-    }
-    return;
-  }
-
   const select = event.target.closest('select[data-command="set-card"]');
   if (!select) return;
   try {
