@@ -159,9 +159,6 @@ function dispatch(body) {
       return;
     }
     requireAdmin(body);
-    if (player.isHero && !payload.forceHero) {
-      throw new Error('Admin can only act for hero through a force override.');
-    }
     game.applyPlayerAction(seat, payload.action, payload.amount);
     return;
   }

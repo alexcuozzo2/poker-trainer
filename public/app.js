@@ -338,6 +338,7 @@ function quickWagerSizes(legal, player, wager) {
   if (!wager) return [];
   const options = [
     ['1/3', 1 / 3],
+    ['1/2', 1 / 2],
     ['2/3', 2 / 3],
     ['Pot', 1],
     ['2x Pot', 2]
@@ -365,7 +366,6 @@ function renderActionControls(legal, player, allowForce) {
     <div class="action-title">
       Action on ${escapeHtml(player.name)}
       ${legal.toCall ? ` · To call ${formatChips(legal.toCall)}` : ''}
-      ${allowForce ? ' · admin override required for hero' : ''}
     </div>
     <div class="action-row">
       ${simpleActions.map((action) => `
@@ -389,12 +389,7 @@ function renderActionControls(legal, player, allowForce) {
           ${wager.type === 'bet' ? 'Bet' : 'Raise'}
         </button>
       ` : ''}
-      ${allowForce ? `
-        <label class="award-choice">
-          <input id="forceHero" type="checkbox">
-          Force hero override
-        </label>
-      ` : ''}
+
     </div>
   `;
 }
@@ -406,7 +401,7 @@ function assignedVisibleCards(exceptCard = '') {
       if (card && card !== 'XX' && card !== exceptCard) cards.push(card);
     }
   }
-  for (const card of state.board) {
+  for (const card of (state.boardPreview || state.board)) {
     if (card && card !== exceptCard) cards.push(card);
   }
   return new Set(cards);
@@ -568,13 +563,15 @@ function renderSeatEditor(player) {
       </label>
       <button data-command="set-stack" data-seat="${player.seat}" ${!player.active ? 'disabled' : ''}>Set</button>
       <div></div>
-      <label>Bot
-        <select data-command="set-bot" data-seat="${player.seat}" ${player.isHero || !player.active ? 'disabled' : ''}>
-          <option value="manual" ${(player.botType || 'manual') === 'manual' ? 'selected' : ''}>Manual</option>
-          <option value="fish" ${player.botType === 'fish' ? 'selected' : ''}>Fish</option>
-          <option value="pro" ${player.botType === 'pro' ? 'selected' : ''}>Pro</option>
-        </select>
-      </label>
+      <fieldset class="bot-toggle" ${player.isHero || !player.active ? 'disabled' : ''}>
+        <legend>Bot</legend>
+        ${['manual', 'fish', 'pro'].map((type) => `
+          <label>
+            <input type="radio" name="bot-${player.seat}" data-command="set-bot" data-seat="${player.seat}" value="${type}" ${(player.botType || 'manual') === type ? 'checked' : ''}>
+            <span>${type[0].toUpperCase()}${type.slice(1)}</span>
+          </label>
+        `).join('')}
+      </fieldset>
       <div></div>
       <div class="card-selects">
         ${cardSelect({ target: 'player', seat: player.seat, index: 0, current: player.hand[0] === 'XX' ? '' : player.hand[0] })}
@@ -678,6 +675,7 @@ function renderTopbar() {
 }
 
 function render() {
+  const adminScrollTop = document.querySelector('.admin-panel')?.scrollTop || 0;
   app.innerHTML = `
     ${renderTopbar()}
     <main class="view-grid ${role === 'hero' ? 'hero-only' : ''}">
@@ -686,11 +684,13 @@ function render() {
     </main>
     ${renderCardOverrideDialog()}
   `;
+  const adminPanel = document.querySelector('.admin-panel');
+  if (adminPanel) adminPanel.scrollTop = adminScrollTop;
 }
 
 document.addEventListener('click', async (event) => {
   const button = event.target.closest('[data-command]');
-  if (!button || button.tagName === 'SELECT') return;
+  if (!button || button.tagName === 'SELECT' || button.tagName === 'INPUT') return;
   const command = button.dataset.command;
   try {
     if (command === 'set-wager') {
@@ -730,8 +730,6 @@ document.addEventListener('click', async (event) => {
       if (button.dataset.needsAmount) {
         payload.amount = document.getElementById('wagerAmount')?.value;
       }
-      const force = document.getElementById('forceHero');
-      if (force?.checked) payload.forceHero = true;
       await api('playerAction', payload);
     } else if (command === 'undo') {
       await api('undo');
@@ -770,12 +768,12 @@ document.addEventListener('click', async (event) => {
 });
 
 document.addEventListener('change', async (event) => {
-  const botSelect = event.target.closest('select[data-command="set-bot"]');
-  if (botSelect) {
+  const botInput = event.target.closest('input[data-command="set-bot"]');
+  if (botInput) {
     try {
       await api('setBot', {
-        seat: Number(botSelect.dataset.seat),
-        botType: botSelect.value
+        seat: Number(botInput.dataset.seat),
+        botType: botInput.value
       });
     } catch (error) {
       showToast(error.message);

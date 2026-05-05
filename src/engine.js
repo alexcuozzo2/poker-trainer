@@ -721,14 +721,14 @@ class PokerGame {
   }
 
   boardSlotIsDealt(index) {
+    if (this.street === 'complete') return Boolean(this.board[index]);
     const visibleByStreet = {
       waiting: 0,
       preflop: 0,
       flop: 3,
       turn: 4,
       river: 5,
-      showdown: 5,
-      complete: 5
+      showdown: 5
     };
     return index < (visibleByStreet[this.street] || 0);
   }
@@ -746,7 +746,7 @@ class PokerGame {
     const preview = [];
     let deckIndex = 0;
     for (let index = 0; index < this.board.length; index += 1) {
-      if (this.boardSlotIsDealt(index)) preview.push(this.board[index]);
+      if (this.board[index]) preview.push(this.board[index]);
       else {
         preview.push(this.deck[deckIndex] || null);
         deckIndex += 1;
@@ -948,7 +948,7 @@ class PokerGame {
     this.applyAwards(awards, winners.length > 1 ? 'Manual chop applied' : 'Manual award applied');
   }
 
-  assignedCards(except = {}) {
+  assignedCards(except = {}, { includeFutureBoard = false } = {}) {
     const cards = [];
     for (const player of this.players) {
       player.hand.forEach((card, index) => {
@@ -957,7 +957,9 @@ class PokerGame {
         }
       });
     }
-    this.board.forEach((card, index) => {
+
+    const boardCards = includeFutureBoard ? this.boardRunoutPreview() : this.board;
+    boardCards.forEach((card, index) => {
       if (card && !(except.target === 'board' && except.index === index)) cards.push(card);
     });
     return cards;
@@ -994,7 +996,7 @@ class PokerGame {
     if (cleanTarget === 'deck') {
       if (cleanIndex < 0 || cleanIndex >= this.deck.length) throw new Error('Deck index is out of range.');
       if (!normalized) throw new Error('Future deck cards cannot be cleared.');
-      if (this.assignedCards().includes(normalized)) throw new Error(`${normalized} is already visible on the table.`);
+      if (this.assignedCards({}, { includeFutureBoard: true }).includes(normalized)) throw new Error(`${normalized} is already assigned to the table runout.`);
       const current = this.deck[cleanIndex];
       const existingIndex = this.deck.indexOf(normalized);
       if (existingIndex >= 0) {
@@ -1010,31 +1012,43 @@ class PokerGame {
 
   setFutureBoardCard(index, card) {
     if (!card) throw new Error('Future board cards cannot be cleared; choose a replacement card instead.');
-    if (this.assignedCards().includes(card)) throw new Error(`${card} is already visible on the table.`);
+    if (this.assignedCards({ target: 'board', index }, { includeFutureBoard: true }).includes(card)) {
+      throw new Error(card + ' is already assigned to the table runout.');
+    }
     const deckIndex = this.deckIndexForBoardSlot(index);
     if (deckIndex < 0 || deckIndex >= this.deck.length) throw new Error('That board card is already visible.');
     const current = this.deck[deckIndex];
     const existingIndex = this.deck.indexOf(card);
     if (existingIndex >= 0) this.deck[existingIndex] = current;
-    else if (current !== card) throw new Error(`${card} is not available in the deck.`);
+    else if (current !== card) throw new Error(card + ' is not available in the deck.');
     this.deck[deckIndex] = card;
   }
 
   setVisibleCard(target, card) {
-    const assigned = this.assignedCards(target);
-    if (card && assigned.includes(card)) throw new Error(`${card} is already assigned.`);
+    const assigned = this.assignedCards(target, { includeFutureBoard: true });
+    if (card && assigned.includes(card)) throw new Error(card + ' is already assigned.');
 
     let previous = null;
     if (target.target === 'player') {
       previous = this.player(target.seat).hand[target.index];
-      this.player(target.seat).hand[target.index] = card;
     } else {
       previous = this.board[target.index];
+    }
+    if (previous === card) return;
+
+    const deckIndex = card ? this.deck.indexOf(card) : -1;
+    if (card && deckIndex < 0) throw new Error(card + ' is not available in the deck.');
+
+    if (target.target === 'player') {
+      this.player(target.seat).hand[target.index] = card;
+    } else {
       this.board[target.index] = card;
     }
 
-    if (card) this.deck = this.deck.filter((deckCard) => deckCard !== card);
-    if (previous && previous !== card && !this.deck.includes(previous) && !this.assignedCards().includes(previous)) {
+    if (card) {
+      if (previous && !this.assignedCards().includes(previous)) this.deck[deckIndex] = previous;
+      else this.deck.splice(deckIndex, 1);
+    } else if (previous && !this.deck.includes(previous) && !this.assignedCards().includes(previous)) {
       this.deck.push(previous);
     }
   }

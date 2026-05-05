@@ -291,3 +291,53 @@ test('chopped pots award only whole chips with odd chips first', () => {
     { seat: 2, amount: 200 }
   ]);
 });
+
+
+test('admin board preview remains available after a folded hand ends', () => {
+  const game = new PokerGame({ seats: 3 });
+  game.street = 'complete';
+  game.handComplete = true;
+  game.board = [null, null, null, null, null];
+  game.deck = ['Ah', 'Kd', 'Qc', 'Js', 'Th', ...createDeck().filter((card) => !['Ah', 'Kd', 'Qc', 'Js', 'Th'].includes(card))];
+
+  const state = game.publicState('admin');
+
+  assert.deepEqual(state.boardPreview.slice(0, 5), ['Ah', 'Kd', 'Qc', 'Js', 'Th']);
+  assert.deepEqual(state.boardDealt, [false, false, false, false, false]);
+});
+
+test('visible card override preserves reserved future board cards', () => {
+  const game = new PokerGame({ seats: 3 });
+  const previewBefore = game.boardRunoutPreview();
+  const replacement = game.deck[8];
+
+  game.setCardOverride({ target: 'player', seat: 1, index: 0, card: replacement });
+
+  assert.deepEqual(game.boardRunoutPreview(), previewBefore);
+});
+
+test('reserved future board cards cannot be assigned elsewhere', () => {
+  const game = new PokerGame({ seats: 3 });
+  const futureFlop = game.boardRunoutPreview()[0];
+
+  assert.throws(
+    () => game.setCardOverride({ target: 'player', seat: 1, index: 0, card: futureFlop }),
+    /already assigned/
+  );
+});
+
+test('future board override does not change other previewed board cards', () => {
+  const game = new PokerGame({ seats: 3 });
+  const before = game.boardRunoutPreview();
+  const replacement = game.deck[9];
+
+  game.setCardOverride({ target: 'board', index: 3, card: replacement });
+
+  const after = game.boardRunoutPreview();
+  assert.equal(after[3], replacement);
+  assert.deepEqual([after[0], after[1], after[2], after[4]], [before[0], before[1], before[2], before[4]]);
+  assert.throws(
+    () => game.setCardOverride({ target: 'board', index: 4, card: after[0] }),
+    /already assigned/
+  );
+});

@@ -646,6 +646,55 @@ label {
   opacity: 0.45;
 }
 
+.bot-toggle {
+  grid-column: 2 / 4;
+  min-width: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.bot-toggle legend {
+  grid-column: 1 / -1;
+  margin-bottom: 1px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.bot-toggle label {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #181a17;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.bot-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bot-toggle label:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(212, 167, 44, 0.22);
+  color: #f8e7ae;
+  font-weight: 800;
+}
+
+.bot-toggle:disabled label {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .card-selects {
   grid-column: 2 / 4;
   display: grid;
